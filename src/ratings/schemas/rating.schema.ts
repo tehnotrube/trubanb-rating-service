@@ -21,12 +21,18 @@ export class Rating extends Document {
 
   @Prop()
   comment: string;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const RatingSchema = SchemaFactory.createForClass(Rating);
 
 // INDEXES: Important for performance
 // 1. Ensure a guest can only rate a specific target ONCE per reservation
-RatingSchema.index({ guestId: 1, targetId: 1, reservationId: 1 }, { unique: true });
+RatingSchema.index(
+  { guestId: 1, targetId: 1, reservationId: 1 },
+  { unique: true },
+);
 // 2. Fast lookup for averages
 RatingSchema.index({ targetId: 1 });

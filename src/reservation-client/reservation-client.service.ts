@@ -25,7 +25,7 @@ export class ReservationClientService implements OnModuleInit {
   private reservationService: ReservationGrpcService;
 
   constructor(
-    @Inject('RESERVATION_PACKAGE') 
+    @Inject('RESERVATION_PACKAGE')
     private readonly client: ClientGrpc,
   ) {}
 
@@ -40,7 +40,10 @@ export class ReservationClientService implements OnModuleInit {
   ): Promise<RatingValidationResponse> {
     try {
       return await firstValueFrom(
-        this.reservationService.getReservationForRating({ reservationId, guestId }),
+        this.reservationService.getReservationForRating({
+          reservationId,
+          guestId,
+        }),
       );
     } catch (error) {
       Logger.error('gRPC call failed', error);

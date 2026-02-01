@@ -7,7 +7,18 @@ import { RatingsModule } from './ratings/ratings.module';
 import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
-  imports: [MetricsModule, HealthModule, RatingsModule, MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/ratings_db')],
+  imports: [
+    MetricsModule,
+    HealthModule,
+    RatingsModule,
+    MongooseModule.forRootAsync({
+      useFactory: () => ({
+        uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/ratings_db',
+        directConnection: true,
+        serverSelectionTimeoutMS: 5000,
+      }),
+    }),
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

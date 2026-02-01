@@ -1,4 +1,3 @@
-// src/ratings/ratings.module.ts
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -7,7 +6,7 @@ import { join } from 'path';
 import { RatingsController } from './ratings.controller';
 import { RatingsService } from './ratings.service';
 import { Rating, RatingSchema } from './schemas/rating.schema';
-import { ReservationsClientModule } from 'src/reservation-client/reservation-client.module';
+import { ReservationsClientModule } from '../reservation-client/reservation-client.module';
 
 @Module({
   imports: [
@@ -17,9 +16,11 @@ import { ReservationsClientModule } from 'src/reservation-client/reservation-cli
         name: 'RESERVATION_PACKAGE',
         transport: Transport.GRPC,
         options: {
-          package: 'reservation', 
+          package: 'reservation',
           protoPath: join(__dirname, '../proto/reservation.proto'),
-          url: process.env.RESERVATION_GRPC_URL || 'trubanb-reservation-service:50052',
+          url:
+            process.env.RESERVATION_GRPC_URL ||
+            'trubanb-reservation-service:50052',
         },
       },
     ]),

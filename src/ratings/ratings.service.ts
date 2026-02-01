@@ -1,10 +1,17 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Rating } from './schemas/rating.schema';
 import { CreateRatingDto } from './dtos/create-rating.dto';
-import { ReservationClientService } from 'src/reservation-client/reservation-client.service';
+import { ReservationClientService } from '../reservation-client/reservation-client.service';
 import { UpdateRatingDto } from './dtos/update-rating.dto';
+import { RatingResponseDto } from './dtos/rating.response.dto';
+import { TargetRatingResponse } from './dtos/target-rating.response.dto';
 
 @Injectable()
 export class RatingsService {
@@ -12,29 +19,36 @@ export class RatingsService {
     @InjectModel(Rating.name) private ratingModel: Model<Rating>,
     private readonly reservationClient: ReservationClientService,
   ) {}
-  
-  async createRating(dto: CreateRatingDto, guestId: string) {
-    const validation = await this.reservationClient.validateReservationForRating(
-      dto.reservationId,
-      guestId,
-    );
 
-    Logger.log(`Reservation validation result: ${JSON.stringify(validation)}`);
+  async createRating(
+    dto: CreateRatingDto,
+    guestId: string,
+  ): Promise<RatingResponseDto> {
+    const validation =
+      await this.reservationClient.validateReservationForRating(
+        dto.reservationId,
+        guestId,
+      );
 
     if (!validation.canRate) {
-      throw new BadRequestException('You can only rate past, completed reservations.');
+      throw new BadRequestException(
+        'You can only rate past, completed reservations.',
+      );
     }
 
-    const targetId = dto.type === 'HOST' ? validation.hostId : validation.accommodationId;
+    const targetId =
+      dto.type === 'HOST' ? validation.hostId : validation.accommodationId;
 
-    const existing = await this.ratingModel.findOne({ 
-      guestId, 
-      targetId, 
-      reservationId: dto.reservationId 
+    const existing = await this.ratingModel.findOne({
+      guestId,
+      targetId,
+      reservationId: dto.reservationId,
     });
-    
+
     if (existing) {
-      throw new BadRequestException('Rating already exists for this reservation. Use Edit instead.');
+      throw new BadRequestException(
+        'Rating already exists for this reservation. Use Edit instead.',
+      );
     }
 
     const newRating = new this.ratingModel({
@@ -44,10 +58,24 @@ export class RatingsService {
       targetType: dto.type,
     });
 
-    return newRating.save();
+    const savedRating = await newRating.save();
+
+    return {
+      id: savedRating.id,
+      guestId: savedRating.guestId,
+      targetId: savedRating.targetId,
+      targetType: savedRating.targetType as 'HOST' | 'ACCOMMODATION',
+      score: savedRating.score,
+      comment: savedRating.comment,
+      createdAt: savedRating.createdAt,
+    };
   }
 
-  async updateRating(ratingId: string, dto: UpdateRatingDto, guestId: string) {
+  async updateRating(
+    ratingId: string,
+    dto: UpdateRatingDto,
+    guestId: string,
+  ): Promise<RatingResponseDto> {
     const rating = await this.ratingModel.findById(ratingId);
 
     if (!rating) throw new NotFoundException('Rating not found');
@@ -57,16 +85,27 @@ export class RatingsService {
 
     rating.score = dto.score;
     rating.comment = dto.comment ?? rating.comment;
-    
-    return rating.save();
+
+    const updatedRating = await rating.save();
+
+    return {
+      id: updatedRating.id,
+      guestId: updatedRating.guestId,
+      targetId: updatedRating.targetId,
+      targetType: updatedRating.targetType as 'HOST' | 'ACCOMMODATION',
+      score: updatedRating.score,
+      comment: updatedRating.comment,
+      createdAt: updatedRating.createdAt,
+    };
   }
 
-  async deleteRating(ratingId: string, guestId: string) {
+  async deleteRating(ratingId: string, guestId: string): Promise<void> {
     const result = await this.ratingModel.deleteOne({ _id: ratingId, guestId });
-    if (result.deletedCount === 0) throw new NotFoundException('Rating not found or unauthorized');
+    if (result.deletedCount === 0)
+      throw new NotFoundException('Rating not found or unauthorized');
   }
 
-  async getTargetRatings(targetId: string) {
+  async getTargetRatings(targetId: string): Promise<TargetRatingResponse> {
     const result = await this.ratingModel.aggregate([
       { $match: { targetId } },
       {
@@ -74,16 +113,16 @@ export class RatingsService {
           _id: '$targetId',
           averageScore: { $avg: '$score' },
           totalCount: { $sum: 1 },
-          ratings: { 
-            $push: { 
+          ratings: {
+            $push: {
               id: '$_id',
-              guestId: '$guestId', 
-              score: '$score', 
-              comment: '$comment', 
-              createdAt: '$createdAt' 
-            } 
-          }
-        }
+              guestId: '$guestId',
+              score: '$score',
+              comment: '$comment',
+              createdAt: '$createdAt',
+            },
+          },
+        },
       },
       {
         $project: {
@@ -91,11 +130,16 @@ export class RatingsService {
           targetId: '$_id',
           averageScore: { $round: ['$averageScore', 1] },
           totalCount: 1,
-          ratings: 1
-        }
-      }
+          ratings: 1,
+        },
+      },
     ]);
 
-    return result[0] || { targetId, averageScore: 0, totalCount: 0, ratings: [] };
+    return (result[0] || {
+      targetId,
+      averageScore: 0,
+      totalCount: 0,
+      ratings: [],
+    }) as TargetRatingResponse;
   }
 }
