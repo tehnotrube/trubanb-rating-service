@@ -6,12 +6,12 @@ ENV NODE_ENV=production
 
 FROM base AS deps
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
+RUN --mount=type=cache,target=/root/.npm npm install --omit=dev
 
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.npm npm install
 COPY . .
 RUN npm run build
 
