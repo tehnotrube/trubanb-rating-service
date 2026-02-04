@@ -47,7 +47,7 @@ describe('Ratings Integration (MongoDB)', () => {
       });
 
       const res = await request(app.getHttpServer() as App)
-        .post('/ratings')
+        .post('/api/ratings')
         .set(TEST_GUEST_TOKEN_HEADERS)
         .send({
           reservationId: RES_ID,
@@ -74,7 +74,7 @@ describe('Ratings Integration (MongoDB)', () => {
       });
 
       const res = await request(app.getHttpServer() as App)
-        .post('/ratings')
+        .post('/api/ratings')
         .set(TEST_GUEST_TOKEN_HEADERS)
         .send({
           reservationId: RES_ID,
@@ -104,7 +104,7 @@ describe('Ratings Integration (MongoDB)', () => {
       });
 
       const res = await request(app.getHttpServer() as App)
-        .post('/ratings')
+        .post('/api/ratings')
         .set(TEST_GUEST_TOKEN_HEADERS)
         .send({
           reservationId: RES_ID,
@@ -133,7 +133,7 @@ describe('Ratings Integration (MongoDB)', () => {
       });
 
       const res = await request(app.getHttpServer() as App)
-        .put(`/ratings/${rating._id.toString()}`)
+        .put(`/api/ratings/${rating._id.toString()}`)
         .set(TEST_GUEST_TOKEN_HEADERS)
         .send({ score: 4 })
         .expect(200);
@@ -171,7 +171,7 @@ describe('Ratings Integration (MongoDB)', () => {
       ]);
 
       const res = await request(app.getHttpServer() as App)
-        .get('/ratings/target/T1')
+        .get('/api/ratings/target/T1')
         .expect(200);
 
       const body = res.body as TargetRatingResponse;
@@ -192,7 +192,7 @@ describe('Ratings Integration (MongoDB)', () => {
       });
 
       await request(app.getHttpServer() as App)
-        .delete(`/ratings/${rating._id.toString()}`)
+        .delete(`/api/ratings/${rating._id.toString()}`)
         .set(TEST_GUEST_TOKEN_HEADERS)
         .expect(200);
 
@@ -204,7 +204,7 @@ describe('Ratings Integration (MongoDB)', () => {
   describe('Validation', () => {
     it('should return 400 for invalid score', async () => {
       await request(app.getHttpServer() as App)
-        .post('/ratings')
+        .post('/api/ratings')
         .set(TEST_GUEST_TOKEN_HEADERS)
         .send({
           reservationId: RES_ID,

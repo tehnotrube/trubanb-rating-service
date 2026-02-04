@@ -17,7 +17,7 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { TargetRatingResponse } from './dtos/target-rating.response.dto';
 import { RatingResponseDto } from './dtos/rating.response.dto';
 
-@Controller('ratings')
+@Controller('/api/ratings')
 export class RatingsController {
   constructor(private readonly ratingsService: RatingsService) {}
 
@@ -40,6 +40,22 @@ export class RatingsController {
     return this.ratingsService.updateRating(id, dto, user.id);
   }
 
+  @Put('reservation/:reservationId/:type')
+  @UseGuards(KongJwtGuard)
+  async updateByReservation(
+    @Param('reservationId') reservationId: string,
+    @Param('type') type: 'HOST' | 'ACCOMMODATION',
+    @Body() dto: UpdateRatingDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<RatingResponseDto> {
+    return this.ratingsService.updateRatingByReservation(
+      reservationId,
+      type,
+      dto,
+      user.id,
+    );
+  }
+
   @Get('target/:id')
   async getRatings(
     @Param('id') targetId: string,
@@ -54,5 +70,19 @@ export class RatingsController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     return this.ratingsService.deleteRating(id, user.id);
+  }
+
+  @Delete('reservation/:reservationId/:type')
+  @UseGuards(KongJwtGuard)
+  async deleteByReservation(
+    @Param('reservationId') reservationId: string,
+    @Param('type') type: 'HOST' | 'ACCOMMODATION',
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    return this.ratingsService.deleteRatingByReservation(
+      reservationId,
+      type,
+      user.id,
+    );
   }
 }

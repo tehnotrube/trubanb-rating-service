@@ -71,6 +71,46 @@ export class RatingsService {
     };
   }
 
+  async updateRatingByReservation(
+    reservationId: string,
+    type: 'HOST' | 'ACCOMMODATION',
+    dto: UpdateRatingDto,
+    guestId: string,
+  ): Promise<RatingResponseDto> {
+    if (type !== 'HOST' && type !== 'ACCOMMODATION') {
+      throw new BadRequestException(
+        'type must be either HOST or ACCOMMODATION',
+      );
+    }
+
+    const rating = await this.ratingModel.findOne({
+      reservationId,
+      guestId,
+      targetType: type,
+    });
+
+    if (!rating) {
+      throw new NotFoundException('Rating not found');
+    }
+
+    rating.score = dto.score;
+    if (dto.comment !== undefined) {
+      rating.comment = dto.comment;
+    }
+
+    const savedRating = await rating.save();
+
+    return {
+      id: savedRating.id,
+      guestId: savedRating.guestId,
+      targetId: savedRating.targetId,
+      targetType: savedRating.targetType as 'HOST' | 'ACCOMMODATION',
+      score: savedRating.score,
+      comment: savedRating.comment,
+      createdAt: savedRating.createdAt,
+    };
+  }
+
   async updateRating(
     ratingId: string,
     dto: UpdateRatingDto,
@@ -103,6 +143,28 @@ export class RatingsService {
     const result = await this.ratingModel.deleteOne({ _id: ratingId, guestId });
     if (result.deletedCount === 0)
       throw new NotFoundException('Rating not found or unauthorized');
+  }
+
+  async deleteRatingByReservation(
+    reservationId: string,
+    type: 'HOST' | 'ACCOMMODATION',
+    guestId: string,
+  ): Promise<void> {
+    if (type !== 'HOST' && type !== 'ACCOMMODATION') {
+      throw new BadRequestException(
+        'type must be either HOST or ACCOMMODATION',
+      );
+    }
+
+    const result = await this.ratingModel.deleteOne({
+      reservationId,
+      guestId,
+      targetType: type,
+    });
+
+    if (result.deletedCount === 0) {
+      throw new NotFoundException('Rating not found or unauthorized');
+    }
   }
 
   async getTargetRatings(targetId: string): Promise<TargetRatingResponse> {
