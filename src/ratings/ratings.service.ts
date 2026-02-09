@@ -12,12 +12,14 @@ import { ReservationClientService } from '../reservation-client/reservation-clie
 import { UpdateRatingDto } from './dtos/update-rating.dto';
 import { RatingResponseDto } from './dtos/rating.response.dto';
 import { TargetRatingResponse } from './dtos/target-rating.response.dto';
+import { RatingEventsPublisher } from '../messaging/rating-events.publisher';
 
 @Injectable()
 export class RatingsService {
   constructor(
     @InjectModel(Rating.name) private ratingModel: Model<Rating>,
     private readonly reservationClient: ReservationClientService,
+    private readonly ratingEventsPublisher: RatingEventsPublisher,
   ) {}
 
   async createRating(
@@ -59,6 +61,29 @@ export class RatingsService {
     });
 
     const savedRating = await newRating.save();
+
+    // Publish notification event
+    if (dto.type === 'HOST') {
+      await this.ratingEventsPublisher.notifyHostRated({
+        ratingId: savedRating.id,
+        hostId: validation.hostId,
+        guestId,
+        guestName: validation.guestName,
+        rating: dto.score,
+        comment: dto.comment,
+      });
+    } else {
+      await this.ratingEventsPublisher.notifyAccommodationRated({
+        ratingId: savedRating.id,
+        accommodationId: validation.accommodationId,
+        accommodationName: validation.accommodationName,
+        hostId: validation.hostId,
+        guestId,
+        guestName: validation.guestName,
+        rating: dto.score,
+        comment: dto.comment,
+      });
+    }
 
     return {
       id: savedRating.id,

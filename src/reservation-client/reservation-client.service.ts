@@ -12,6 +12,8 @@ export interface RatingValidationResponse {
   hostId: string;
   accommodationId: string;
   isPast: boolean;
+  guestName: string;
+  accommodationName: string;
 }
 
 interface ReservationGrpcService {
