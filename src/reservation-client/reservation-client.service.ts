@@ -49,7 +49,7 @@ export class ReservationClientService implements OnModuleInit {
       );
     } catch (error) {
       Logger.error('gRPC call failed', error);
-      return { canRate: false, hostId: '', accommodationId: '', isPast: false };
+      return { canRate: false, hostId: '', accommodationId: '', isPast: false, guestName: '', accommodationName: '' };
     }
   }
 }
