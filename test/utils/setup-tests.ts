@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
+import { RatingEventsPublisher } from '../../src/messaging/rating-events.publisher';
 
 export let app: INestApplication;
 
@@ -12,12 +13,19 @@ export const mockGrpcClient = {
   getService: jest.fn().mockReturnValue(mockReservationGrpcService),
 };
 
+export const mockRatingEventsPublisher = {
+  notifyHostRated: jest.fn().mockResolvedValue(undefined),
+  notifyAccommodationRated: jest.fn().mockResolvedValue(undefined),
+};
+
 beforeAll(async () => {
   const moduleFixture = await Test.createTestingModule({
     imports: [AppModule],
   })
     .overrideProvider('RESERVATION_PACKAGE')
     .useValue(mockGrpcClient)
+    .overrideProvider(RatingEventsPublisher)
+    .useValue(mockRatingEventsPublisher)
     .compile();
 
   app = moduleFixture.createNestApplication();
@@ -38,4 +46,4 @@ afterAll(async () => {
   if (app) {
     await app.close();
   }
-});
+}, 30000);

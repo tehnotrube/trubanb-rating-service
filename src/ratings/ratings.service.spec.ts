@@ -3,6 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { RatingsService } from './ratings.service';
 import { Rating } from './schemas/rating.schema';
 import { ReservationClientService } from '../reservation-client/reservation-client.service';
+import { RatingEventsPublisher } from '../messaging/rating-events.publisher';
 import {
   BadRequestException,
   NotFoundException,
@@ -57,6 +58,13 @@ describe('RatingsService', () => {
             validateReservationForRating: jest.fn(),
           },
         },
+        {
+          provide: RatingEventsPublisher,
+          useValue: {
+            notifyHostRated: jest.fn().mockResolvedValue(undefined),
+            notifyAccommodationRated: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -78,6 +86,8 @@ describe('RatingsService', () => {
         hostId: 'host_1',
         accommodationId: 'acc_1',
         isPast: true,
+        guestName: 'Test Guest',
+        accommodationName: 'Test Accommodation',
       });
 
       (model.findOne as jest.Mock).mockResolvedValue(null);
@@ -101,6 +111,8 @@ describe('RatingsService', () => {
         hostId: 'host_1',
         accommodationId: 'acc_1',
         isPast: false,
+        guestName: 'Test Guest',
+        accommodationName: 'Test Accommodation',
       });
 
       await expect(

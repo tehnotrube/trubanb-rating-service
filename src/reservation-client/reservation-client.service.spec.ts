@@ -91,6 +91,8 @@ describe('ReservationClientService', () => {
         hostId: '',
         accommodationId: '',
         isPast: false,
+        guestName: '',
+        accommodationName: '',
       });
       expect(loggerSpy).toHaveBeenCalled();
 

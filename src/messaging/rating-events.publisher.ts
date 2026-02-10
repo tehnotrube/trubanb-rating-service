@@ -13,9 +13,7 @@ export class RatingEventsPublisher {
 
   constructor(private readonly amqpConnection: AmqpConnection) {}
 
-  async notifyHostRated(
-    payload: HostRatedNotificationEvent['payload'],
-  ) {
+  async notifyHostRated(payload: HostRatedNotificationEvent['payload']) {
     const event: HostRatedNotificationEvent = {
       eventId: createNotificationEventId(),
       eventType: 'rating.host.created',
