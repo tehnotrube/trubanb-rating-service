@@ -7,6 +7,7 @@ import { RatingsController } from './ratings.controller';
 import { RatingsService } from './ratings.service';
 import { Rating, RatingSchema } from './schemas/rating.schema';
 import { ReservationsClientModule } from '../reservation-client/reservation-client.module';
+import { MessagingModule } from '../messaging/messaging.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ReservationsClientModule } from '../reservation-client/reservation-clie
       },
     ]),
     ReservationsClientModule,
+    MessagingModule,
   ],
   controllers: [RatingsController],
   providers: [RatingsService],

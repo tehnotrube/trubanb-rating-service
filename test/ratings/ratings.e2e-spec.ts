@@ -31,9 +31,15 @@ describe('Ratings Integration (MongoDB)', () => {
     accommodationId?: string;
     hostId?: string;
     isPast?: boolean;
+    guestName?: string;
+    accommodationName?: string;
   }) => {
     mockReservationGrpcService.getReservationForRating.mockReturnValue(
-      of(data),
+      of({
+        guestName: 'Test Guest',
+        accommodationName: 'Test Accommodation',
+        ...data,
+      }),
     );
   };
 

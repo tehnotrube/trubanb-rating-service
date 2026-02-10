@@ -3,6 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { RatingsService } from './ratings.service';
 import { Rating } from './schemas/rating.schema';
 import { ReservationClientService } from '../reservation-client/reservation-client.service';
+import { RatingEventsPublisher } from '../messaging/rating-events.publisher';
 import {
   BadRequestException,
   NotFoundException,
@@ -16,6 +17,7 @@ describe('RatingsService', () => {
   let service: RatingsService;
   let model: JestMockModel<Rating>;
   let mockReservationClient: jest.Mocked<ReservationClientService>;
+  let mockRatingEventsPublisher: jest.Mocked<RatingEventsPublisher>;
 
   const mockRatingDoc = (overrides = {}) => {
     const doc = {
@@ -57,12 +59,22 @@ describe('RatingsService', () => {
             validateReservationForRating: jest.fn(),
           },
         },
+        {
+          provide: RatingEventsPublisher,
+          useValue: {
+            notifyHostRated: jest.fn().mockResolvedValue(undefined),
+            notifyAccommodationRated: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RatingsService>(RatingsService);
     model = module.get<JestMockModel<Rating>>(getModelToken(Rating.name));
     mockReservationClient = module.get(ReservationClientService);
+    mockRatingEventsPublisher = module.get(RatingEventsPublisher);
+
+    jest.clearAllMocks();
   });
 
   describe('createRating', () => {
@@ -78,6 +90,8 @@ describe('RatingsService', () => {
         hostId: 'host_1',
         accommodationId: 'acc_1',
         isPast: true,
+        guestName: 'Test Guest',
+        accommodationName: 'Test Accommodation',
       });
 
       (model.findOne as jest.Mock).mockResolvedValue(null);
@@ -101,11 +115,105 @@ describe('RatingsService', () => {
         hostId: 'host_1',
         accommodationId: 'acc_1',
         isPast: false,
+        guestName: 'Test Guest',
+        accommodationName: 'Test Accommodation',
       });
 
       await expect(
         service.createRating(createDto, 'usr_guest_1'),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should call notifyHostRated when creating a HOST rating', async () => {
+      const hostRatingDto = {
+        reservationId: 'res_1',
+        type: 'HOST' as const,
+        score: 4,
+        comment: 'Great host!',
+      };
+
+      mockReservationClient.validateReservationForRating.mockResolvedValue({
+        canRate: true,
+        hostId: 'host_1',
+        accommodationId: 'acc_1',
+        isPast: true,
+        guestName: 'Test Guest',
+        accommodationName: 'Test Accommodation',
+      });
+
+      (model.findOne as jest.Mock).mockResolvedValue(null);
+
+      const savedDoc = mockRatingDoc({
+        id: 'rating_1',
+        targetId: 'host_1',
+        targetType: 'HOST',
+        score: 4,
+        comment: 'Great host!',
+      });
+      model.mockImplementation(() => ({
+        save: jest.fn().mockResolvedValue(savedDoc),
+      }));
+
+      await service.createRating(hostRatingDto, 'usr_guest_1');
+
+      expect(mockRatingEventsPublisher.notifyHostRated).toHaveBeenCalledWith({
+        ratingId: 'rating_1',
+        hostId: 'host_1',
+        guestId: 'usr_guest_1',
+        guestName: 'Test Guest',
+        rating: 4,
+        comment: 'Great host!',
+      });
+      expect(
+        mockRatingEventsPublisher.notifyAccommodationRated,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should call notifyAccommodationRated when creating an ACCOMMODATION rating', async () => {
+      const accommodationRatingDto = {
+        reservationId: 'res_1',
+        type: 'ACCOMMODATION' as const,
+        score: 5,
+        comment: 'Amazing place!',
+      };
+
+      mockReservationClient.validateReservationForRating.mockResolvedValue({
+        canRate: true,
+        hostId: 'host_1',
+        accommodationId: 'acc_1',
+        isPast: true,
+        guestName: 'Test Guest',
+        accommodationName: 'Beach House',
+      });
+
+      (model.findOne as jest.Mock).mockResolvedValue(null);
+
+      const savedDoc = mockRatingDoc({
+        id: 'rating_2',
+        targetId: 'acc_1',
+        targetType: 'ACCOMMODATION',
+        score: 5,
+        comment: 'Amazing place!',
+      });
+      model.mockImplementation(() => ({
+        save: jest.fn().mockResolvedValue(savedDoc),
+      }));
+
+      await service.createRating(accommodationRatingDto, 'usr_guest_1');
+
+      expect(
+        mockRatingEventsPublisher.notifyAccommodationRated,
+      ).toHaveBeenCalledWith({
+        ratingId: 'rating_2',
+        accommodationId: 'acc_1',
+        accommodationName: 'Beach House',
+        hostId: 'host_1',
+        guestId: 'usr_guest_1',
+        guestName: 'Test Guest',
+        rating: 5,
+        comment: 'Amazing place!',
+      });
+      expect(mockRatingEventsPublisher.notifyHostRated).not.toHaveBeenCalled();
     });
   });
 
