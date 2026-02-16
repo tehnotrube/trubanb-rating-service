@@ -26,7 +26,12 @@ jobs:
       - run: npm run lint
       - run: npm run test:cov
       - run: npm run test:e2e
-
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
   release:
     needs: test-and-scan
     permissions:
