@@ -53,40 +53,39 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-build-and-publish:
-  needs: release
-  if: needs.release.outputs.new_release_published == 'true'
-  permissions:
-    contents: write
-    packages: write
-    pull-requests: write
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
+  build-and-publish:
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Prepare Kaniko Config
-      run: |
-        mkdir -p /tmp/kaniko
-        echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64)'"}}}' > /tmp/kaniko/config.json
+      - name: Prepare Kaniko Config
+        run: |
+          mkdir -p /tmp/kaniko
+          echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64)'"}}}' > /tmp/kaniko/config.json
 
-    - name: Build & Push with Kaniko
-      run: |
-        docker run --rm \
-          -v "$PWD":/workspace \
-          -v /tmp/kaniko:/kaniko/.docker \
-          gcr.io/kaniko-project/executor:v1.23.2-debug \
-          --context=/workspace \
-          --dockerfile=/workspace/Dockerfile \
-          --destination=ghcr.io/${{ github.repository_owner }}/trubanb-rating-service:${{ needs.release.outputs.new_release_version }} \
-          --destination=ghcr.io/${{ github.repository_owner }}/trubanb-rating-service:latest \
-          --cache=true \
-          --cache-repo=ghcr.io/${{ github.repository_owner }}/trubanb-rating-service-cache \
-          --cache-ttl=168h \
-          --compressed-caching=false \
-          --push-retry=3 \
-          --label=org.opencontainers.image.source=https://github.com/${{ github.repository }} \
-          --label=org.opencontainers.image.description="Trubanb Rating Service" \
-          --label=org.opencontainers.image.licenses=MIT \
-          --label=org.opencontainers.image.revision=${{ github.sha }} \
-          --label=org.opencontainers.image.version=${{ needs.release.outputs.new_release_version }}
-            
+      - name: Build & Push with Kaniko
+        run: |
+          docker run --rm \
+            -v "$PWD":/workspace \
+            -v /tmp/kaniko:/kaniko/.docker \
+            gcr.io/kaniko-project/executor:v1.23.2-debug \
+            --context=/workspace \
+            --dockerfile=/workspace/Dockerfile \
+            --destination=ghcr.io/${{ github.repository_owner }}/trubanb-rating-service:${{ needs.release.outputs.new_release_version }} \
+            --destination=ghcr.io/${{ github.repository_owner }}/trubanb-rating-service:latest \
+            --cache=true \
+            --cache-repo=ghcr.io/${{ github.repository_owner }}/trubanb-rating-service-cache \
+            --cache-ttl=168h \
+            --compressed-caching=false \
+            --push-retry=3 \
+            --label=org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+            --label=org.opencontainers.image.description="Trubanb Rating Service" \
+            --label=org.opencontainers.image.licenses=MIT \
+            --label=org.opencontainers.image.revision=${{ github.sha }} \
+            --label=org.opencontainers.image.version=${{ needs.release.outputs.new_release_version }}
